@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2013 for Windows Desktop
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expaceo.SoundLibrary.SampleProject", "Expaceo.SoundLibrary\Expaceo.SoundLibrary.SampleProject.csproj", "{18CF6517-89C3-4DAA-80F0-0C31D57E1C2A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expaceo.SoundLibrary.Base", "Expaceo.SoundLibrary.Base\Expaceo.SoundLibrary.Base.csproj", "{E48210B7-60E5-4BB1-AEE1-40AF25E7A748}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{18CF6517-89C3-4DAA-80F0-0C31D57E1C2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18CF6517-89C3-4DAA-80F0-0C31D57E1C2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18CF6517-89C3-4DAA-80F0-0C31D57E1C2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18CF6517-89C3-4DAA-80F0-0C31D57E1C2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E48210B7-60E5-4BB1-AEE1-40AF25E7A748}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E48210B7-60E5-4BB1-AEE1-40AF25E7A748}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E48210B7-60E5-4BB1-AEE1-40AF25E7A748}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E48210B7-60E5-4BB1-AEE1-40AF25E7A748}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
