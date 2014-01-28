@@ -23,6 +23,7 @@ namespace Expaceo.SoundLibrary
         public MainWindow()
         {
             InitializeComponent();
+            SoundLibrary.Base.Sound.PlayBeep(440, 1000);
         }
     }
 }

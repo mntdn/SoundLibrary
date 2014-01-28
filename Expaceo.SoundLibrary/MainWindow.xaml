@@ -4,7 +4,7 @@
         Title="MainWindow" Height="350" Width="525">
     <Grid>
         <ContentControl VerticalAlignment="Center" HorizontalAlignment="Center">
-            Hello World !
+            Hello World ! Caroline
         </ContentControl>
     </Grid>
 </Window>

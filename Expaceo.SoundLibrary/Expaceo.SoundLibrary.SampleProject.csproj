@@ -93,6 +93,12 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Expaceo.SoundLibrary.Base\Expaceo.SoundLibrary.Base.csproj">
+      <Project>{e48210b7-60e5-4bb1-aee1-40af25e7a748}</Project>
+      <Name>Expaceo.SoundLibrary.Base</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
