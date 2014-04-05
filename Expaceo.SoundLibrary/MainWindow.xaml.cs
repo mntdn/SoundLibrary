@@ -27,18 +27,23 @@ namespace Expaceo.SoundLibrary
         {
             InitializeComponent();
             //SoundLibrary.Base.Sound.PlayBeep(440, 1000);
-
+            int samplesPerSecond;
+            int.TryParse(((ComboBoxItem)CB_SamplePerSec.SelectedItem).Content.ToString(), out samplesPerSecond);
+            s.OpenDevice(samplesPerSecond);
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             int frequency;
-            int samplesPerSecond;
-            short bitsPerSample;
+
             int.TryParse(TB_Frequency.Text, out frequency);
-            int.TryParse(((ListBoxItem)CB_SamplePerSec.SelectedItem).Content.ToString(), out samplesPerSecond);
-            short.TryParse(((ListBoxItem)CB_BitsPerSample.SelectedItem).Content.ToString(), out bitsPerSample);
-            s.PlayOKBeep(frequency, samplesPerSecond, bitsPerSample);
+            s.PlayBeep(frequency);
+        }
+
+        private void Button_Stop_Click(object sender, RoutedEventArgs e)
+        {
+            s.Stop();
+            s.CloseDevice();
         }
     }
 }

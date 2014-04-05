@@ -3,20 +3,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
-        <Button Content="Beep!" HorizontalAlignment="Left" Margin="336,59,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
-        <ComboBox x:Name="CB_BitsPerSample" HorizontalAlignment="Left" Margin="131,10,0,0" VerticalAlignment="Top" Width="120">
-            <ListBoxItem Content="8"/>
-            <ListBoxItem Content="16"/>
-        </ComboBox>
-        <Label Content="Bits" HorizontalAlignment="Left" Margin="10,6,0,0" VerticalAlignment="Top" Width="116"/>
+        <Button x:Name="Button_Beep" Content="Beep!" HorizontalAlignment="Left" Margin="336,59,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
         <ComboBox x:Name="CB_SamplePerSec" HorizontalAlignment="Left" Margin="131,36,0,0" VerticalAlignment="Top" Width="120">
-            <ListBoxItem Content="11025"/>
-            <ListBoxItem Content="22050"/>
-            <ListBoxItem Content="44100"/>
+            <ComboBoxItem Content="11025"/>
+            <ComboBoxItem Content="22050"/>
+            <ComboBoxItem Content="44100" IsSelected="True"/>
         </ComboBox>
         <Label Content="Echantillons/s" HorizontalAlignment="Left" Margin="10,32,0,0" VerticalAlignment="Top" Width="116"/>
         <Label Content="Fréquence" HorizontalAlignment="Left" Margin="10,58,0,0" VerticalAlignment="Top" Width="116"/>
         <TextBox x:Name="TB_Frequency" HorizontalAlignment="Left" Height="21" Margin="131,63,0,0" TextWrapping="Wrap" Text="440" VerticalAlignment="Top" Width="120"/>
+        <Button x:Name="Button_Stop" Content="Stop" HorizontalAlignment="Left" Margin="336,100,0,0" VerticalAlignment="Top" Width="75" Click="Button_Stop_Click"/>
 
     </Grid>
 </Window>
