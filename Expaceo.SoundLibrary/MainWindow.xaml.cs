@@ -42,7 +42,6 @@ namespace Expaceo.SoundLibrary
 
         private void Button_Stop_Click(object sender, RoutedEventArgs e)
         {
-            s.Stop();
             s.CloseDevice();
         }
     }
