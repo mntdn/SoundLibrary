@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Expaceo.SoundLibrary.Base
 {
-    public class Sound
+    public class Sound:IDisposable
     {
         internal class Buffer:IDisposable
         {
@@ -20,28 +20,27 @@ namespace Expaceo.SoundLibrary.Base
             private GCHandle headerDataHandle;
             private GCHandle waveHeaderHandle;
 
-            public int Buffersize { get; private set; }
-            public Int16[] Data { get; set; }
+            private Int16[] Data;
 
             private bool isPlaying;
+
+            private AutoResetEvent m_PlayEvent = new AutoResetEvent(false);
 
             public Buffer(IntPtr waveOutHandle, int buffersize)
             {
                 hWaveOut = waveOutHandle;
-                Buffersize = buffersize;
 
                 waveHeaderHandle = GCHandle.Alloc(waveHeader, GCHandleType.Pinned);
-                Data = new Int16[Buffersize];
-                headerDataHandle = GCHandle.Alloc(Data, GCHandleType.Pinned);
                 waveHeader.dwUser = (IntPtr)GCHandle.Alloc(this);
+                Data = new Int16[buffersize];
+                headerDataHandle = GCHandle.Alloc(Data, GCHandleType.Pinned);
                 waveHeader.lpData = headerDataHandle.AddrOfPinnedObject();
-                waveHeader.dwBufferLength = Buffersize;
+                waveHeader.dwBufferLength = buffersize;
                 waveHeader.dwFlags = 0;
                 waveHeader.dwLoops = 0;
                 try
                 {
-                    int r = SoundStructure.waveOutPrepareHeader(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
-                    Debug.WriteLine("te");
+                    SoundStructure.waveOutPrepareHeader(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
                 }
                 catch
                 {
@@ -63,8 +62,6 @@ namespace Expaceo.SoundLibrary.Base
                 GC.SuppressFinalize(this);
             }
 
-            private AutoResetEvent m_PlayEvent = new AutoResetEvent(false);
-
             internal static void WaveOutProc(IntPtr hdrvr, int uMsg, int dwUser, ref SoundStructure.WaveHdr wavhdr, int dwParam2)
             {
                 if (uMsg == SoundStructure.MM_WOM_DONE)
@@ -81,7 +78,7 @@ namespace Expaceo.SoundLibrary.Base
                 double x;
                 int nChannels = 2;
                 double nSamplesPerSec = 44100;
-                for (int i = 0; i < Buffersize; i++)
+                for (int i = 0; i < waveHeader.dwBufferLength; i++)
                 {
                     x = Math.Sin(i * nChannels * Math.PI * (frequency) / nSamplesPerSec);
                     Data[i] = (Int16)(Int16.MaxValue * x);
@@ -90,18 +87,18 @@ namespace Expaceo.SoundLibrary.Base
 
             public void Clean()
             {
-                for (int i = 0; i < Buffersize-1; i++)
+                for (int i = 0; i < waveHeader.dwBufferLength - 1; i++)
 			    {
                     Data[i] = 0;
 			    }
             }
 
-            public bool Play()
+            public bool Play(int frequency)
             {
                 lock (this)
                 {
                     m_PlayEvent.Reset();
-                    Fill(440);
+                    Fill(frequency);
                     int r = SoundStructure.waveOutWrite(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
                     isPlaying = r == SoundStructure.MMSYSERR_NOERROR;
                     return isPlaying;
@@ -113,6 +110,18 @@ namespace Expaceo.SoundLibrary.Base
                 m_PlayEvent.Set();
             }
 
+            public void Wait()
+            {
+                if (isPlaying)
+                {
+                    isPlaying = m_PlayEvent.WaitOne();
+                }
+                else
+                {
+                    Thread.Sleep(0);
+                }
+            }
+
             public void OnCompleted()
             {
                 m_PlayEvent.Set();
@@ -121,17 +130,25 @@ namespace Expaceo.SoundLibrary.Base
         }
         
         private IntPtr mainWaveOut;
-        //private SoundStructure.WaveFormat waveFormat = new SoundStructure.WaveFormat();
-        //private SoundStructure.WaveHdr WaveHeader = new SoundStructure.WaveHdr();
         private Buffer buffers;
-        private int currentBuffer = 0;
 
+        private Thread wThread;
         
         private SoundStructure.WaveDelegate m_BufferProc = new SoundStructure.WaveDelegate(Buffer.WaveOutProc);
 
         public Sound()
         {
+        }
+
+        public Sound(int samplesPerSecond)
+        {
+            OpenDevice(samplesPerSecond);
             buffers = new Buffer(mainWaveOut, 441000);
+        }
+
+        public void Dispose()
+        {
+            CloseDevice();
         }
 
         public bool OpenDevice(int samplesPerSecond)
@@ -165,47 +182,14 @@ namespace Expaceo.SoundLibrary.Base
 
         public void PlayBeep(int frequency)
         {
-            // Initalise le premier buffer    
-            //buffers[currentBuffer].Fill(frequency, waveFormat);
+            wThread = new Thread(new ThreadStart(PlayThread));
+            wThread.Start();
+            // faire la boucle de buffer/play !
+        }
 
-            //// ** Create the wave header for our sound buffer **
-            //GCHandle m_HeaderDataHandle = GCHandle.Alloc(buffers[currentBuffer].Data, GCHandleType.Pinned);
-            //WaveHeader.lpData = m_HeaderDataHandle.AddrOfPinnedObject();
-            //WaveHeader.dwBufferLength = buffers[currentBuffer].Buffersize;
-            //WaveHeader.dwFlags = 0;
-            //WaveHeader.dwLoops = 0;
-
-            //// ** Prepare the header for playback on sound card **
-            //if (SoundStructure.waveOutPrepareHeader(mainWaveOut, ref WaveHeader, Marshal.SizeOf(WaveHeader)) != SoundStructure.MMSYSERR_NOERROR)
-            //{
-            //    Debug.WriteLine("Error preparing Header!");
-            //    return;
-            //}
-
-            //// ** Play the sound! **
-            //Buffer.m_PlayEvent.Reset();
-
-            //if (SoundStructure.waveOutWrite(mainWaveOut, ref WaveHeader, Marshal.SizeOf(WaveHeader)) != SoundStructure.MMSYSERR_NOERROR)
-            //{
-            //    Debug.WriteLine("Error writing to sound card!");
-            //    return;
-            //}
-
-            //// ** Wait until sound finishes playing
-            ////m_PlayEvent.WaitOne();
-
-            //// ** Unprepare our wav header **
-            //if (SoundStructure.waveOutUnprepareHeader(mainWaveOut, ref WaveHeader, Marshal.SizeOf(WaveHeader)) != SoundStructure.MMSYSERR_NOERROR)
-            //{
-            //    Debug.WriteLine("Error unpreparing header!");
-            //    return;
-            //}
-
-            //currentBuffer = currentBuffer == 0 ? 1 : 0;
-            
-            // ** Release our event handle **
-            //m_PlayEvent.Close();
-            buffers.Play();
+        private void PlayThread()
+        {
+            buffers.Play(440);
         }
 
         public static void PlayCrapBeep(UInt16 frequency, int msDuration, UInt16 volume = 16383)

@@ -21,7 +21,7 @@ namespace Expaceo.SoundLibrary
     /// </summary>
     public partial class MainWindow : Window
     {
-        public Sound s = new Sound();
+        public Sound s;
 
         public MainWindow()
         {
@@ -29,6 +29,7 @@ namespace Expaceo.SoundLibrary
             //SoundLibrary.Base.Sound.PlayBeep(440, 1000);
             int samplesPerSecond;
             int.TryParse(((ComboBoxItem)CB_SamplePerSec.SelectedItem).Content.ToString(), out samplesPerSecond);
+            s = new Sound(samplesPerSecond);
             s.OpenDevice(samplesPerSecond);
         }
 
