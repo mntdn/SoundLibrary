@@ -50,23 +50,23 @@ namespace Expaceo.SoundLibrary.Base
 
             public void Dispose()
             {
-                if (waveHeader.lpData != IntPtr.Zero)
-                {
-                    SoundStructure.waveOutUnprepareHeader(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
-                    waveHeaderHandle.Free();
-                    waveHeader.lpData = IntPtr.Zero;
-                }
-                m_PlayEvent.Close();
-                if (headerDataHandle.IsAllocated)
-                    headerDataHandle.Free();
-                GC.SuppressFinalize(this);
+                //if (waveHeader.lpData != IntPtr.Zero)
+                //{
+                //    SoundStructure.waveOutUnprepareHeader(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
+                //    waveHeaderHandle.Free();
+                //    waveHeader.lpData = IntPtr.Zero;
+                //}
+                //m_PlayEvent.Close();
+                //if (headerDataHandle.IsAllocated)
+                //    headerDataHandle.Free();
+                //GC.SuppressFinalize(this);
             }
 
             internal static void WaveOutProc(IntPtr hdrvr, int uMsg, int dwUser, ref SoundStructure.WaveHdr wavhdr, int dwParam2)
             {
                 if (uMsg == SoundStructure.MM_WOM_DONE)
                 {
-                    Debug.WriteLine("Son terminé");
+                    //Debug.WriteLine("Son terminé");
                     GCHandle h = (GCHandle)wavhdr.dwUser;
                     Buffer buf = (Buffer)h.Target;
                     buf.OnCompleted();
@@ -75,6 +75,8 @@ namespace Expaceo.SoundLibrary.Base
 
             public void Fill(int frequency)
             {
+                Stopwatch s = new Stopwatch();
+                s.Start();
                 double x;
                 int nChannels = 2;
                 double nSamplesPerSec = 44100;
@@ -83,6 +85,8 @@ namespace Expaceo.SoundLibrary.Base
                     x = Math.Sin(i * nChannels * Math.PI * (frequency) / nSamplesPerSec);
                     Data[i] = (Int16)(Int16.MaxValue * x);
                 }
+                s.Stop();
+                Debug.WriteLine("Filled in "+s.ElapsedTicks+" ticks");
             }
 
             public void Clean()
@@ -132,6 +136,8 @@ namespace Expaceo.SoundLibrary.Base
         private IntPtr mainWaveOut;
         private Buffer[] buffers;
         private int currentBuffer;
+        private bool soundPlaying;
+        private int soundFrequency;
 
         private Thread wThread;
         
@@ -145,13 +151,15 @@ namespace Expaceo.SoundLibrary.Base
         {
             OpenDevice(samplesPerSecond);
             buffers = new Buffer[2];
-            buffers[0] = new Buffer(mainWaveOut, 441000);
-            buffers[1] = new Buffer(mainWaveOut, 441000);
+            buffers[0] = new Buffer(mainWaveOut, 26410);
+            buffers[1] = new Buffer(mainWaveOut, 26410);
             currentBuffer = 0;
+            soundFrequency = 440;
         }
 
         public void Dispose()
         {
+            soundPlaying = false;
             CloseDevice();
         }
 
@@ -186,21 +194,26 @@ namespace Expaceo.SoundLibrary.Base
 
         public void PlayBeep(int frequency)
         {
-            buffers[currentBuffer].Fill(frequency);
-            while (true)
-            {
-                wThread = new Thread(new ThreadStart(PlayThread));
-                wThread.Start();
-                currentBuffer = currentBuffer == 1 ? 0 : 1;
-                buffers[currentBuffer].Fill(frequency);
-                wThread.Join();
-            }
-            // pouvoir arrêter la boucle de buffer/play !
+            soundPlaying = true;
+            soundFrequency = frequency;
+            wThread = new Thread(new ThreadStart(PlayThread));
+            wThread.Start();
         }
 
         private void PlayThread()
         {
-            buffers[currentBuffer].Play(440);
+            while (soundPlaying)
+            {
+                buffers[currentBuffer].Fill(soundFrequency);
+                Stopwatch s = new Stopwatch();
+                s.Start();
+                buffers[currentBuffer].Wait();
+                buffers[currentBuffer].Play(soundFrequency);
+                s.Stop();
+                Debug.WriteLine("Played in " + s.ElapsedTicks + " ticks");
+                //Debug.WriteLine("Done");
+                currentBuffer = currentBuffer == 1 ? 0 : 1;
+            }
         }
 
         public static void PlayCrapBeep(UInt16 frequency, int msDuration, UInt16 volume = 16383)
