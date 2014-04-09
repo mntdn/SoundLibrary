@@ -98,7 +98,7 @@ namespace Expaceo.SoundLibrary.Base
                 lock (this)
                 {
                     m_PlayEvent.Reset();
-                    Fill(frequency);
+                    //Fill(frequency);
                     int r = SoundStructure.waveOutWrite(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
                     isPlaying = r == SoundStructure.MMSYSERR_NOERROR;
                     return isPlaying;
@@ -130,7 +130,8 @@ namespace Expaceo.SoundLibrary.Base
         }
         
         private IntPtr mainWaveOut;
-        private Buffer buffers;
+        private Buffer[] buffers;
+        private int currentBuffer;
 
         private Thread wThread;
         
@@ -143,7 +144,10 @@ namespace Expaceo.SoundLibrary.Base
         public Sound(int samplesPerSecond)
         {
             OpenDevice(samplesPerSecond);
-            buffers = new Buffer(mainWaveOut, 441000);
+            buffers = new Buffer[2];
+            buffers[0] = new Buffer(mainWaveOut, 441000);
+            buffers[1] = new Buffer(mainWaveOut, 441000);
+            currentBuffer = 0;
         }
 
         public void Dispose()
@@ -182,14 +186,21 @@ namespace Expaceo.SoundLibrary.Base
 
         public void PlayBeep(int frequency)
         {
-            wThread = new Thread(new ThreadStart(PlayThread));
-            wThread.Start();
-            // faire la boucle de buffer/play !
+            buffers[currentBuffer].Fill(frequency);
+            while (true)
+            {
+                wThread = new Thread(new ThreadStart(PlayThread));
+                wThread.Start();
+                currentBuffer = currentBuffer == 1 ? 0 : 1;
+                buffers[currentBuffer].Fill(frequency);
+                wThread.Join();
+            }
+            // pouvoir arrêter la boucle de buffer/play !
         }
 
         private void PlayThread()
         {
-            buffers.Play(440);
+            buffers[currentBuffer].Play(440);
         }
 
         public static void PlayCrapBeep(UInt16 frequency, int msDuration, UInt16 volume = 16383)
