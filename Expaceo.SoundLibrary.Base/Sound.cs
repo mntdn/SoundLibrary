@@ -20,15 +20,19 @@ namespace Expaceo.SoundLibrary.Base
             private GCHandle headerDataHandle;
             private GCHandle waveHeaderHandle;
 
+            private int Id;
+
             private Int16[] Data;
 
             private bool isPlaying;
 
             private AutoResetEvent m_PlayEvent = new AutoResetEvent(false);
 
-            public Buffer(IntPtr waveOutHandle, int buffersize)
+            public Buffer(IntPtr waveOutHandle, int buffersize, int id)
             {
                 hWaveOut = waveOutHandle;
+
+                Id = id;
 
                 waveHeaderHandle = GCHandle.Alloc(waveHeader, GCHandleType.Pinned);
                 waveHeader.dwUser = (IntPtr)GCHandle.Alloc(this);
@@ -86,7 +90,7 @@ namespace Expaceo.SoundLibrary.Base
                     Data[i] = (Int16)(Int16.MaxValue * x);
                 }
                 s.Stop();
-                Debug.WriteLine("Filled in "+s.ElapsedTicks+" ticks");
+                Debug.WriteLine(string.Format("{0} Filled in {1} ticks", Id, s.ElapsedTicks));
             }
 
             public void Clean()
@@ -151,8 +155,8 @@ namespace Expaceo.SoundLibrary.Base
         {
             OpenDevice(samplesPerSecond);
             buffers = new Buffer[2];
-            buffers[0] = new Buffer(mainWaveOut, 26410);
-            buffers[1] = new Buffer(mainWaveOut, 26410);
+            buffers[0] = new Buffer(mainWaveOut, 4410, 0);
+            buffers[1] = new Buffer(mainWaveOut, 4410, 1);
             currentBuffer = 0;
             soundFrequency = 440;
         }
@@ -204,13 +208,17 @@ namespace Expaceo.SoundLibrary.Base
         {
             while (soundPlaying)
             {
+                Debug.WriteLine(string.Format("{0} -- Fill {1} début", DateTime.Now.Ticks, currentBuffer));
                 buffers[currentBuffer].Fill(soundFrequency);
-                Stopwatch s = new Stopwatch();
-                s.Start();
+                //Stopwatch s = new Stopwatch();
+                //s.Start();
+                Debug.WriteLine(string.Format("{0} -- Fill {1} fin", DateTime.Now.Ticks, currentBuffer));
                 buffers[currentBuffer].Wait();
+                Debug.WriteLine(string.Format("{0} -- Play {1} début", DateTime.Now.Ticks, currentBuffer));
                 buffers[currentBuffer].Play(soundFrequency);
-                s.Stop();
-                Debug.WriteLine("Played in " + s.ElapsedTicks + " ticks");
+                Debug.WriteLine(string.Format("{0} -- Play {1} fin", DateTime.Now.Ticks, currentBuffer));
+                //s.Stop();
+                //Debug.WriteLine(string.Format("Buf {0} Played in {1} ticks", currentBuffer, s.ElapsedTicks));
                 //Debug.WriteLine("Done");
                 currentBuffer = currentBuffer == 1 ? 0 : 1;
             }
