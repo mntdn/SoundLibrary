@@ -36,14 +36,24 @@ namespace Expaceo.SoundLibrary
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             int frequency;
+            int volume;
 
             int.TryParse(TB_Frequency.Text, out frequency);
-            s.PlayBeep(frequency);
+            int.TryParse(TB_Volume.Text, out volume);
+            s.PlayBeep(frequency, volume);
         }
 
         private void Button_Stop_Click(object sender, RoutedEventArgs e)
         {
             s.Dispose();
+        }
+
+        private void TB_Volume_LostFocus(object sender, RoutedEventArgs e)
+        {
+            int volume;
+
+            int.TryParse(TB_Volume.Text, out volume);
+            s.soundVolume = volume;
         }
     }
 }
