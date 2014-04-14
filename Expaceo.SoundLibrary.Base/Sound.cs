@@ -76,6 +76,7 @@ namespace Expaceo.SoundLibrary.Base
                     //Debug.WriteLine("Son terminé");
                     GCHandle h = (GCHandle)wavhdr.dwUser;
                     Buffer buf = (Buffer)h.Target;
+                    Debug.WriteLine(string.Format("{0} -- {1} a fini", DateTime.Now.Ticks, buf.Id));
                     buf.OnCompleted();
                 }
             }
@@ -85,6 +86,13 @@ namespace Expaceo.SoundLibrary.Base
                 return randomSeed.NextDouble() * (maximum - minimum) + minimum;
             }
 
+            /// <summary>
+            /// Remplit le buffer avec une onde sinusoïdale
+            /// </summary>
+            /// <param name="frequency">Fréquence (La = 440)</param>
+            /// <param name="startPos">Position de départ, indiquer la dernière position renvoyée par Fill, ou bien 0 pour commencer</param>
+            /// <param name="volume">Puissance du son, compris entre 0 et 100</param>
+            /// <returns></returns>
             public int Fill(int frequency, int startPos, int volume)
             {
                 //Stopwatch s = new Stopwatch();
@@ -99,12 +107,12 @@ namespace Expaceo.SoundLibrary.Base
                 //}
                 int c = 0;
                 int pos = startPos;
-                short valueOrigin = (short)(byte.MaxValue * Math.Sin(0 * nChannels * Math.PI * (frequency) / nSamplesPerSec));
+                short valueOrigin = (short)(short.MaxValue * Math.Sin(0 * nChannels * Math.PI * (frequency) / nSamplesPerSec));
                 bool valueBackToOrigin = startPos == 0;
                 while (c < waveHeader.dwBufferLength)
                 {
                     x = Math.Sin(pos * nChannels * Math.PI * (frequency) / nSamplesPerSec);
-                    Data[c] = (short)(byte.MaxValue * x);
+                    Data[c] = (short)((volume/100) * short.MaxValue * x);
                     if (Data[c] == valueOrigin && !valueBackToOrigin)
                     {
                         pos = 0; valueBackToOrigin = true;
@@ -115,14 +123,14 @@ namespace Expaceo.SoundLibrary.Base
                     }
                     c++;
                 }
-                Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, Data[0], Data[waveHeader.dwBufferLength - 1]));
+                //Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, Data[0], Data[waveHeader.dwBufferLength - 1]));
                 System.Runtime.InteropServices.Marshal.Copy(Data, 0, waveHeader.lpData, waveHeader.dwBufferLength);
                 return pos == 0 ? pos : pos - 1;
                 //s.Stop();
                 //Debug.WriteLine(string.Format("{0} Filled in {1} ticks", Id, s.ElapsedTicks));
             }
 
-            public int FillSquare(int frequency, int startPos)
+            public int FillSquare(int frequency, int startPos, int volume)
             {
                 //Stopwatch s = new Stopwatch();
                 //s.Start();
@@ -132,7 +140,7 @@ namespace Expaceo.SoundLibrary.Base
                 bool negativeValue = false;
                 for (int i = 0; i < waveHeader.dwBufferLength; i++)
                 {
-                    soundData[i] = (short)(byte.MaxValue * (negativeValue ? -1 : 1));
+                    soundData[i] = (short)((volume / 100) * short.MaxValue * (negativeValue ? -1 : 1));
                     c--;
                     if (c == 0)
                     {
@@ -148,14 +156,14 @@ namespace Expaceo.SoundLibrary.Base
                 //Debug.WriteLine(string.Format("{0} Filled in {1} ticks", Id, s.ElapsedTicks));
             }
 
-            public int FillNoise()
+            public int FillNoise(int volume)
             {
                 //Stopwatch s = new Stopwatch();
                 //s.Start();
                 short[] soundData = new short[waveHeader.dwBufferLength];
                 for (int i = 0; i < waveHeader.dwBufferLength; i++)
                 {
-                    soundData[i] = (short)(short.MaxValue * GetRandomNumber(-1, 1));
+                    soundData[i] = (short)((volume / 100) * short.MaxValue * GetRandomNumber(-1, 1));
                 }
 
                 Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, soundData[0], soundData[waveHeader.dwBufferLength - 1]));
@@ -179,6 +187,7 @@ namespace Expaceo.SoundLibrary.Base
                 {
                     m_PlayEvent.Reset();
                     //Fill(frequency);
+                    Debug.WriteLine(string.Format("{0} -- {1} commence à jouer", DateTime.Now.Ticks, Id));
                     int r = SoundStructure.waveOutWrite(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
                     isPlaying = r == SoundStructure.MMSYSERR_NOERROR;
                     return isPlaying;
@@ -198,7 +207,8 @@ namespace Expaceo.SoundLibrary.Base
                 }
                 else
                 {
-                    Thread.Sleep(0);
+                    Thread.Sleep(300);
+                    Debug.WriteLine("-------");
                 }
             }
 
@@ -277,7 +287,7 @@ namespace Expaceo.SoundLibrary.Base
             wThread = new Thread(new ThreadStart(PlayThread));
             wThread.Start();
         }
-
+        
         private void PlayThread()
         {
             int pos = 0;
@@ -286,7 +296,7 @@ namespace Expaceo.SoundLibrary.Base
             {
                 //Debug.WriteLine(string.Format("{0} -- Fill {1} début", DateTime.Now.Ticks, currentBuffer));
                 pos = buffers[currentBuffer].Fill(soundFrequency, pos, soundVolume);
-                //pos = buffers[currentBuffer].FillSquare(soundFrequency, pos);
+                //pos = buffers[currentBuffer].FillSquare(soundFrequency, pos, soundVolume);
                 //pos = buffers[currentBuffer].FillNoise();
                 //Stopwatch s = new Stopwatch();
                 //s.Start();
