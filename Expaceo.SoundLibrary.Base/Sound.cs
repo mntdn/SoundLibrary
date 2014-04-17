@@ -57,16 +57,16 @@ namespace Expaceo.SoundLibrary.Base
 
             public void Dispose()
             {
-                //if (waveHeader.lpData != IntPtr.Zero)
-                //{
-                //    SoundStructure.waveOutUnprepareHeader(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
-                //    waveHeaderHandle.Free();
-                //    waveHeader.lpData = IntPtr.Zero;
-                //}
-                //m_PlayEvent.Close();
-                //if (headerDataHandle.IsAllocated)
-                //    headerDataHandle.Free();
-                //GC.SuppressFinalize(this);
+                if (waveHeader.lpData != IntPtr.Zero)
+                {
+                    SoundStructure.waveOutUnprepareHeader(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
+                    waveHeaderHandle.Free();
+                    waveHeader.lpData = IntPtr.Zero;
+                }
+                m_PlayEvent.Close();
+                if (headerDataHandle.IsAllocated)
+                    headerDataHandle.Free();
+                GC.SuppressFinalize(this);
             }
 
             internal static void WaveOutProc(IntPtr hdrvr, int uMsg, int dwUser, ref SoundStructure.WaveHdr wavhdr, int dwParam2)
@@ -207,8 +207,8 @@ namespace Expaceo.SoundLibrary.Base
                 }
                 else
                 {
-                    Thread.Sleep(300);
-                    Debug.WriteLine("-------");
+                    Thread.Sleep(0);
+                    //Debug.WriteLine("-------");
                 }
             }
 
