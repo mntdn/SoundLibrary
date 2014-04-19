@@ -37,6 +37,13 @@ namespace Expaceo.SoundLibrary.Base
             Float = 3
         }
 
+        public enum WaveTypes
+        {
+            Sine,
+            Square,
+            Noise
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         public class WaveFormat
         {

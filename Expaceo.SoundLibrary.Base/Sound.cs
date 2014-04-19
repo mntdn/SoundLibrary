@@ -13,6 +13,8 @@ namespace Expaceo.SoundLibrary.Base
 {
     public class Sound:IDisposable
     {
+        private static AutoResetEvent m_PlayEvent = new AutoResetEvent(false);
+
         internal class Buffer:IDisposable
         {
             private IntPtr hWaveOut;
@@ -24,11 +26,9 @@ namespace Expaceo.SoundLibrary.Base
 
             private short[] Data;
 
-            private bool isPlaying;
+            public bool isPlaying { get; private set; }
 
             private Random randomSeed;
-
-            private AutoResetEvent m_PlayEvent = new AutoResetEvent(false);
 
             public Buffer(IntPtr waveOutHandle, int buffersize, int id)
             {
@@ -63,7 +63,7 @@ namespace Expaceo.SoundLibrary.Base
                     waveHeaderHandle.Free();
                     waveHeader.lpData = IntPtr.Zero;
                 }
-                m_PlayEvent.Close();
+                //m_PlayEvent.Close();
                 if (headerDataHandle.IsAllocated)
                     headerDataHandle.Free();
                 GC.SuppressFinalize(this);
@@ -76,7 +76,6 @@ namespace Expaceo.SoundLibrary.Base
                     //Debug.WriteLine("Son terminé");
                     GCHandle h = (GCHandle)wavhdr.dwUser;
                     Buffer buf = (Buffer)h.Target;
-                    Debug.WriteLine(string.Format("{0} -- {1} a fini", DateTime.Now.Ticks, buf.Id));
                     buf.OnCompleted();
                 }
             }
@@ -90,87 +89,46 @@ namespace Expaceo.SoundLibrary.Base
             /// Remplit le buffer avec une onde sinusoïdale
             /// </summary>
             /// <param name="frequency">Fréquence (La = 440)</param>
-            /// <param name="startPos">Position de départ, indiquer la dernière position renvoyée par Fill, ou bien 0 pour commencer</param>
             /// <param name="volume">Puissance du son, compris entre 0 et 100</param>
             /// <returns></returns>
-            public int Fill(int frequency, int startPos, int volume)
+            public void FillSine(int frequency, int volume)
             {
-                //Stopwatch s = new Stopwatch();
-                //s.Start();
                 double x;
                 int nChannels = 2;
                 double nSamplesPerSec = 44100;
-                //for (int i = 0; i < waveHeader.dwBufferLength; i++)
-                //{
-                //    x = Math.Sin(i * nChannels * Math.PI * (frequency) / nSamplesPerSec);
-                //    Data[i] = (short)(short.MaxValue * x);
-                //}
-                int c = 0;
-                int pos = startPos;
-                short valueOrigin = (short)(short.MaxValue * Math.Sin(0 * nChannels * Math.PI * (frequency) / nSamplesPerSec));
-                bool valueBackToOrigin = startPos == 0;
-                while (c < waveHeader.dwBufferLength)
+                for (int i = 0; i < waveHeader.dwBufferLength; i++)
                 {
-                    x = Math.Sin(pos * nChannels * Math.PI * (frequency) / nSamplesPerSec);
-                    Data[c] = (short)((volume/100) * short.MaxValue * x);
-                    if (Data[c] == valueOrigin && !valueBackToOrigin)
-                    {
-                        pos = 0; valueBackToOrigin = true;
-                    }
-                    else
-                    {
-                        pos++;
-                    }
-                    c++;
+                    x = Math.Sin(i * nChannels * Math.PI * (frequency) / nSamplesPerSec);
+                    Data[i] = (short)(((double)volume/100) * short.MaxValue * x);
                 }
                 //Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, Data[0], Data[waveHeader.dwBufferLength - 1]));
                 System.Runtime.InteropServices.Marshal.Copy(Data, 0, waveHeader.lpData, waveHeader.dwBufferLength);
-                return pos == 0 ? pos : pos - 1;
-                //s.Stop();
-                //Debug.WriteLine(string.Format("{0} Filled in {1} ticks", Id, s.ElapsedTicks));
             }
 
-            public int FillSquare(int frequency, int startPos, int volume)
+            public void FillSquare(int frequency, int volume)
             {
-                //Stopwatch s = new Stopwatch();
-                //s.Start();
                 short[] soundData = new short[waveHeader.dwBufferLength];
-                int peakLength = 100;
-                int c = peakLength;
-                bool negativeValue = false;
+                double multiple = 2 * frequency / 44100.0f;
+                short gain = (short)(((double)volume / 100) * short.MaxValue);
                 for (int i = 0; i < waveHeader.dwBufferLength; i++)
                 {
-                    soundData[i] = (short)((volume / 100) * short.MaxValue * (negativeValue ? -1 : 1));
-                    c--;
-                    if (c == 0)
-                    {
-                        negativeValue = !negativeValue;
-                        c = peakLength;
-                    }
+                    soundData[i] = (((i * multiple) % 2) - 1 > 0) ? gain : (short)-gain;
                 }
 
-                Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, soundData[0], soundData[waveHeader.dwBufferLength - 1]));
+                //Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, soundData[0], soundData[waveHeader.dwBufferLength - 1]));
                 System.Runtime.InteropServices.Marshal.Copy(soundData, 0, waveHeader.lpData, waveHeader.dwBufferLength);
-                return 1;
-                //s.Stop();
-                //Debug.WriteLine(string.Format("{0} Filled in {1} ticks", Id, s.ElapsedTicks));
             }
 
-            public int FillNoise(int volume)
+            public void FillNoise(int volume)
             {
-                //Stopwatch s = new Stopwatch();
-                //s.Start();
                 short[] soundData = new short[waveHeader.dwBufferLength];
                 for (int i = 0; i < waveHeader.dwBufferLength; i++)
                 {
-                    soundData[i] = (short)((volume / 100) * short.MaxValue * GetRandomNumber(-1, 1));
+                    soundData[i] = (short)(((double)volume / 100) * short.MaxValue * GetRandomNumber(-1, 1));
                 }
 
-                Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, soundData[0], soundData[waveHeader.dwBufferLength - 1]));
+                //Debug.WriteLine(string.Format("{0} -- {1} -> {2}", Id, soundData[0], soundData[waveHeader.dwBufferLength - 1]));
                 System.Runtime.InteropServices.Marshal.Copy(soundData, 0, waveHeader.lpData, waveHeader.dwBufferLength);
-                return 1;
-                //s.Stop();
-                //Debug.WriteLine(string.Format("{0} Filled in {1} ticks", Id, s.ElapsedTicks));
             }
 
             public void Clean()
@@ -185,11 +143,9 @@ namespace Expaceo.SoundLibrary.Base
             {
                 lock (this)
                 {
-                    m_PlayEvent.Reset();
-                    //Fill(frequency);
-                    Debug.WriteLine(string.Format("{0} -- {1} commence à jouer", DateTime.Now.Ticks, Id));
-                    int r = SoundStructure.waveOutWrite(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader));
-                    isPlaying = r == SoundStructure.MMSYSERR_NOERROR;
+                    //m_PlayEvent.Reset();
+                    Debug.WriteLine(string.Format("{0} -- {1} commence à jouer", DateTime.Now.ToString("mm:ss.fff"), Id));
+                    isPlaying = SoundStructure.waveOutWrite(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader)) == SoundStructure.MMSYSERR_NOERROR;
                     return isPlaying;
                 }
             }
@@ -201,19 +157,21 @@ namespace Expaceo.SoundLibrary.Base
 
             public void Wait()
             {
-                if (isPlaying)
-                {
+                //if (isPlaying)
+                //{
+                Debug.WriteLine(string.Format("{0} -- {1} Attends (WaitOne)", DateTime.Now.ToString("mm:ss.fff"), Id));
                     isPlaying = m_PlayEvent.WaitOne();
-                }
-                else
-                {
-                    Thread.Sleep(0);
-                    //Debug.WriteLine("-------");
-                }
+                //}
+                //else
+                //{
+                //    Thread.Sleep(0);
+                //    //Debug.WriteLine("-------");
+                //}
             }
 
             public void OnCompleted()
             {
+                Debug.WriteLine(string.Format("{0} -- {1} C'est fini (appel)", DateTime.Now.ToString("mm:ss.fff"), Id));
                 m_PlayEvent.Set();
                 isPlaying = false;
             }
@@ -225,6 +183,7 @@ namespace Expaceo.SoundLibrary.Base
         private bool soundPlaying;
         private int soundFrequency;
         public int soundVolume { get; set; }
+        public SoundStructure.WaveTypes waveType { get; set; }
 
         private Thread wThread;
         
@@ -234,12 +193,13 @@ namespace Expaceo.SoundLibrary.Base
         {
         }
 
-        public Sound(int samplesPerSecond)
+        public Sound(SoundStructure.WaveTypes w)
         {
-            OpenDevice(samplesPerSecond);
+            OpenDevice(44100);
+            waveType = w;
             buffers = new Buffer[2];
-            buffers[0] = new Buffer(mainWaveOut, 17640, 0);
-            buffers[1] = new Buffer(mainWaveOut, 17640, 1);
+            buffers[0] = new Buffer(mainWaveOut, 16384, 0);
+            buffers[1] = new Buffer(mainWaveOut, 16384, 1);
             currentBuffer = 0;
             soundFrequency = 440;
         }
@@ -247,7 +207,7 @@ namespace Expaceo.SoundLibrary.Base
         public void Dispose()
         {
             soundPlaying = false;
-            CloseDevice();
+            //CloseDevice();
         }
 
         public bool OpenDevice(int samplesPerSecond)
@@ -287,32 +247,55 @@ namespace Expaceo.SoundLibrary.Base
             wThread = new Thread(new ThreadStart(PlayThread));
             wThread.Start();
         }
-        
+
+        public void ChangeWaveType(SoundStructure.WaveTypes w)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                buffers[i].Clean();
+            }
+            waveType = w;
+        }
+
         private void PlayThread()
         {
-            int pos = 0;
-            //pos = buffers[currentBuffer].FillNoise();
             while (soundPlaying)
             {
                 //Debug.WriteLine(string.Format("{0} -- Fill {1} début", DateTime.Now.Ticks, currentBuffer));
-                pos = buffers[currentBuffer].Fill(soundFrequency, pos, soundVolume);
-                //pos = buffers[currentBuffer].FillSquare(soundFrequency, pos, soundVolume);
-                //pos = buffers[currentBuffer].FillNoise();
-                //Stopwatch s = new Stopwatch();
-                //s.Start();
+                switch (waveType)
+                {
+                    case SoundStructure.WaveTypes.Sine:
+                        buffers[currentBuffer].FillSine(soundFrequency, soundVolume);
+                        break;
+                    case SoundStructure.WaveTypes.Square:
+                        buffers[currentBuffer].FillSquare(soundFrequency, soundVolume);
+                        break;
+                    case SoundStructure.WaveTypes.Noise:
+                        buffers[currentBuffer].FillNoise(soundVolume);
+                        break;
+                    default:
+                        buffers[currentBuffer].FillSine(soundFrequency, soundVolume);
+                        break;
+                }
                 //Debug.WriteLine(string.Format("{0} -- Fill {1} fin", DateTime.Now.Ticks, currentBuffer));
-                buffers[currentBuffer].Wait();
+                Debug.WriteLine(string.Format("{0} -- {1} Thread en attente", DateTime.Now.ToString("mm:ss.fff"), currentBuffer));
+                if (buffers[0].isPlaying || buffers[1].isPlaying)
+                    buffers[currentBuffer].Wait();
                 //Debug.WriteLine(string.Format("{0} -- Play {1} début", DateTime.Now.Ticks, currentBuffer));
+                //Debug.WriteLine(string.Format("{0}'{2} -- {1} Thread lancé", DateTime.Now.Second, currentBuffer, DateTime.Now.Millisecond));
                 buffers[currentBuffer].Play(soundFrequency);
                 //Debug.WriteLine(string.Format("{0} -- Play {1} fin", DateTime.Now.Ticks, currentBuffer));
-                //s.Stop();
-                //Debug.WriteLine(string.Format("Buf {0} Played in {1} ticks", currentBuffer, s.ElapsedTicks));
-                //Debug.WriteLine("Done");
                 currentBuffer = currentBuffer == 1 ? 0 : 1;
             }
         }
 
-        public static void PlayCrapBeep(UInt16 frequency, int msDuration, UInt16 volume = 16383)
+        #region NativeCSharpVersion
+
+        public SoundPlayer sp;
+        public SoundPlayer sp2;
+        public bool spIsPlaying;
+
+        public MemoryStream SinStream(UInt16 frequency, int msDuration, UInt16 volume = 16383)
         {
             var mStrm = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(mStrm);
@@ -356,12 +339,94 @@ namespace Expaceo.SoundLibrary.Base
             }
 
             mStrm.Seek(0, SeekOrigin.Begin);
-            SoundPlayer sp =  new SoundPlayer(mStrm);
-
-            sp.Play();
-            sp.Dispose();
-            writer.Close();
-            mStrm.Close();
+            return mStrm;
         }
+
+        public void PlayCrapBeep(UInt16 frequency, int msDuration, UInt16 volume = 16383)
+        {
+            //var mStrm = new MemoryStream();
+            //BinaryWriter writer = new BinaryWriter(mStrm);
+
+            //const double TAU = 2 * Math.PI;
+            //int formatChunkSize = 16;
+            //int headerSize = 8;
+            //short formatType = 1;
+            //short tracks = 1;
+            //int samplesPerSecond = 44100;
+            //short bitsPerSample = 16;
+            //short frameSize = (short)(tracks * ((bitsPerSample + 7) / 8));
+            //int bytesPerSecond = samplesPerSecond * frameSize;
+            //int waveSize = 4;
+            //int samples = (int)((decimal)samplesPerSecond * msDuration / 1000);
+            //int dataChunkSize = samples * frameSize;
+            //int fileSize = waveSize + headerSize + formatChunkSize + headerSize + dataChunkSize;
+            //// var encoding = new System.Text.UTF8Encoding();
+            //writer.Write(0x46464952); // = encoding.GetBytes("RIFF")
+            //writer.Write(fileSize);
+            //writer.Write(0x45564157); // = encoding.GetBytes("WAVE")
+            //writer.Write(0x20746D66); // = encoding.GetBytes("fmt ")
+            //writer.Write(formatChunkSize);
+            //writer.Write(formatType);
+            //writer.Write(tracks);
+            //writer.Write(samplesPerSecond);
+            //writer.Write(bytesPerSecond);
+            //writer.Write(frameSize);
+            //writer.Write(bitsPerSample);
+            //writer.Write(0x61746164); // = encoding.GetBytes("data")
+            //writer.Write(dataChunkSize);
+
+            //double theta = frequency * TAU / (double)samplesPerSecond;
+            //// 'volume' is UInt16 with range 0 thru Uint16.MaxValue ( = 65 535)
+            //// we need 'amp' to have the range of 0 thru Int16.MaxValue ( = 32 767)
+            //double amp = volume >> 2; // so we simply set amp = volume / 2
+            //for (int step = 0; step < samples; step++)
+            //{
+            //    short s = (short)(amp * Math.Sin(theta * (double)step));
+            //    writer.Write(s);
+            //}
+
+            //mStrm.Seek(0, SeekOrigin.Begin);
+            MemoryStream ms1 = SinStream(frequency, msDuration, volume);
+            MemoryStream ms2 = SinStream(frequency, msDuration, volume);
+            sp =  new SoundPlayer();
+            sp2 = new SoundPlayer();
+            //sp.LoadCompleted += sp_LoadCompleted;
+
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    sp.PlaySync();
+            //    mStrm.Seek(0, SeekOrigin.Begin);
+            //    sp.Stream = mStrm;
+            //    sp.Load();
+            //}
+            sp.Stream = SinStream(frequency, msDuration, volume);
+            sp2.Stream = SinStream(frequency, msDuration, volume);
+            sp.Load();
+            sp2.Load();
+            sp.PlaySync();
+            //Debug.WriteLine("tttttt");
+            sp2.PlaySync();
+            //spIsPlaying = false;
+            //sp.Load();
+            //for (int i = 0; i < 10; i++)
+            //{
+            //    sp.LoadAsync();
+            //    spIsPlaying = true;
+            //    while (spIsPlaying) { }
+            //}
+            //sp.Dispose();
+            //writer.Close();
+            //mStrm.Close();
+        }
+
+        private void sp_LoadCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
+        {
+            if (spIsPlaying && sp.IsLoadCompleted)
+            {
+                sp.PlaySync();
+                spIsPlaying = false;
+            }
+        }
+        #endregion
     }
 }

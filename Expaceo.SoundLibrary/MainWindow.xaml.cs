@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Expaceo.SoundLibrary.Base;
+using System.Diagnostics;
 
 namespace Expaceo.SoundLibrary
 {
@@ -69,7 +70,7 @@ namespace Expaceo.SoundLibrary
             {
                 IsKeyPressed = true;
                 keyRectangle.Fill = new SolidColorBrush(WhiteKey?Colors.Blue:Colors.White);
-                s.PlayBeep(Frequency, 100);
+                s.PlayBeep(Frequency, s.soundVolume);
             }
 
             private void PianoKeyRelease(object sender, MouseButtonEventArgs e)
@@ -93,11 +94,9 @@ namespace Expaceo.SoundLibrary
         public MainWindow()
         {
             InitializeComponent();
-            //SoundLibrary.Base.Sound.PlayBeep(440, 1000);
-            int samplesPerSecond;
-            int.TryParse(((ComboBoxItem)CB_SamplePerSec.SelectedItem).Content.ToString(), out samplesPerSecond);
-            s = new Sound(samplesPerSecond);
-            s.OpenDevice(samplesPerSecond);
+            s = new Sound(SoundStructure.WaveTypes.Sine);
+            s.soundVolume = 80;
+            //s.OpenDevice(samplesPerSecond);
 
             // bool = true pour une touche blanche
             Dictionary<int, bool> Piano = new Dictionary<int, bool>();
@@ -114,6 +113,18 @@ namespace Expaceo.SoundLibrary
             Piano.Add(466, false);
             Piano.Add(494, true);
             Piano.Add(523, true);
+            Piano.Add(554, false);
+            Piano.Add(587, true);
+            Piano.Add(622, false);
+            Piano.Add(659, true);
+            Piano.Add(698, true);
+            Piano.Add(740, false);
+            Piano.Add(784, true);
+            Piano.Add(831, false);
+            Piano.Add(880, true);
+            Piano.Add(932, false);
+            Piano.Add(988, true);
+            Piano.Add(1047, true);
 
             int left = 0;
             int top = 0;
@@ -123,29 +134,40 @@ namespace Expaceo.SoundLibrary
                 Canvas_Piano.Children.Add(p.keyRectangle);
                 left += keyFreq.Value?20:0;
             }
+            this.KeyDown += new KeyEventHandler(OnButtonKeyDown);
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            int frequency;
-            int volume;
-
-            int.TryParse(TB_Frequency.Text, out frequency);
-            int.TryParse(TB_Volume.Text, out volume);
-            s.PlayBeep(frequency, volume);
+            if (s != null)
+                s.soundVolume = (int)slider_Volume.Value;
         }
 
-        private void Button_Stop_Click(object sender, RoutedEventArgs e)
+        private void CB_WaveType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            s.Dispose();
+            if (s != null)
+            {
+                switch (((ComboBoxItem)CB_WaveType.SelectedItem).Content.ToString())
+                {
+                    case "Sinusoïdal":
+                        s.ChangeWaveType(SoundStructure.WaveTypes.Sine);
+                        break;
+                    case "Carré":
+                        s.ChangeWaveType(SoundStructure.WaveTypes.Square);
+                        break;
+                    case "Bruit":
+                        s.ChangeWaveType(SoundStructure.WaveTypes.Noise);
+                        break;
+                    default:
+                        s.ChangeWaveType(SoundStructure.WaveTypes.Sine);
+                        break;
+                }
+            }
         }
 
-        private void TB_Volume_LostFocus(object sender, RoutedEventArgs e)
+        private void OnButtonKeyDown(object sender, KeyEventArgs e)
         {
-            int volume;
-
-            int.TryParse(TB_Volume.Text, out volume);
-            s.soundVolume = volume;
+            Debug.WriteLine(e.Key.ToString());
         }
     }
 }
