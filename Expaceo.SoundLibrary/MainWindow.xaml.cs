@@ -169,5 +169,10 @@ namespace Expaceo.SoundLibrary
         {
             Debug.WriteLine(e.Key.ToString());
         }
+
+        private void But_PlaySound_Click(object sender, RoutedEventArgs e)
+        {
+            s.PlayCrapBeep(440, 1000, ushort.MaxValue);
+        }
     }
 }
