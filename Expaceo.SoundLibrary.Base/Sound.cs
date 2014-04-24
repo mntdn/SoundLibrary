@@ -144,9 +144,9 @@ namespace Expaceo.SoundLibrary.Base
                 //lock (this)
                 {
                     // on empêche tous les threads en attente de passer
-                    m_PlayEvent.Reset();
+                    //m_PlayEvent.Reset();
                     //m_PlayEvent.Set();
-                    Debug.WriteLine(string.Format("{0} -- {1} commence à jouer", DateTime.Now.ToString("mm:ss.fff"), Id));
+                    Debug.WriteLine(string.Format("{0} -- {1} commence à jouer", DateTime.Now.ToString("mm:ss.ffff"), Id));
                     isPlaying = SoundStructure.waveOutWrite(hWaveOut, ref waveHeader, Marshal.SizeOf(waveHeader)) == SoundStructure.MMSYSERR_NOERROR;
                     return isPlaying;
                 }
@@ -161,10 +161,10 @@ namespace Expaceo.SoundLibrary.Base
             {
                 //if (isPlaying)
                 //{
-                Debug.WriteLine(string.Format("{0} -- {1} Attends (WaitOne)", DateTime.Now.ToString("mm:ss.fff"), Id));
+                Debug.WriteLine(string.Format("{0} -- {1} Attends (WaitOne)", DateTime.Now.ToString("mm:ss.ffff"), Id));
                 //isPlaying = m_PlayEvent.WaitOne();
                 m_PlayEvent.WaitOne();
-                Debug.WriteLine(string.Format("{0} -- {1} Fin (WaitOne)", DateTime.Now.ToString("mm:ss.fff"), Id));
+                Debug.WriteLine(string.Format("{0} -- {1} Fin (WaitOne)", DateTime.Now.ToString("mm:ss.ffff"), Id));
                 //}
                 //else
                 //{
@@ -175,7 +175,7 @@ namespace Expaceo.SoundLibrary.Base
 
             public void OnCompleted()
             {
-                Debug.WriteLine(string.Format("{0} -- {1} C'est fini (appel)", DateTime.Now.ToString("mm:ss.fff"), Id));
+                Debug.WriteLine(string.Format("{0} -- {1} C'est fini (appel)", DateTime.Now.ToString("mm:ss.ffff"), Id));
                 isPlaying = false;
                 m_PlayEvent.Set();
             }
@@ -201,9 +201,11 @@ namespace Expaceo.SoundLibrary.Base
         {
             OpenDevice(44100);
             waveType = w;
-            buffers = new Buffer[2];
-            buffers[0] = new Buffer(mainWaveOut, 116384, 0);
-            buffers[1] = new Buffer(mainWaveOut, 116384, 1);
+            buffers = new Buffer[3];
+            for (int i = 0; i < buffers.Length; i++)
+            {
+                buffers[i] = new Buffer(mainWaveOut, 16384, i);
+            }
             currentBuffer = 0;
             soundFrequency = 440;
         }
@@ -254,43 +256,53 @@ namespace Expaceo.SoundLibrary.Base
 
         public void ChangeWaveType(SoundStructure.WaveTypes w)
         {
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < buffers.Length; i++)
             {
                 buffers[i].Clean();
             }
             waveType = w;
         }
 
+        private void FillBufferWithWave(int bufferId, SoundStructure.WaveTypes waveType)
+        {
+            switch (waveType)
+            {
+                case SoundStructure.WaveTypes.Sine:
+                    buffers[bufferId].FillSine(soundFrequency, soundVolume);
+                    break;
+                case SoundStructure.WaveTypes.Square:
+                    buffers[bufferId].FillSquare(soundFrequency, soundVolume);
+                    break;
+                case SoundStructure.WaveTypes.Noise:
+                    buffers[bufferId].FillNoise(soundVolume);
+                    break;
+                default:
+                    buffers[bufferId].FillSine(soundFrequency, soundVolume);
+                    break;
+            }
+        }
+
         private void PlayThread()
         {
             m_PlayEvent.Set();
+            FillBufferWithWave(0, waveType);
+            FillBufferWithWave(1, waveType);
+            buffers[0].Play(soundFrequency);
+            buffers[1].Play(soundFrequency);
+            currentBuffer = 2;
             while (soundPlaying)
             {
                 //Debug.WriteLine(string.Format("{0} -- Fill {1} début", DateTime.Now.Ticks, currentBuffer));
-                switch (waveType)
-                {
-                    case SoundStructure.WaveTypes.Sine:
-                        buffers[currentBuffer].FillSine(soundFrequency, soundVolume);
-                        break;
-                    case SoundStructure.WaveTypes.Square:
-                        buffers[currentBuffer].FillSquare(soundFrequency, soundVolume);
-                        break;
-                    case SoundStructure.WaveTypes.Noise:
-                        buffers[currentBuffer].FillNoise(soundVolume);
-                        break;
-                    default:
-                        buffers[currentBuffer].FillSine(soundFrequency, soundVolume);
-                        break;
-                }
+                FillBufferWithWave(currentBuffer, waveType);
                 //Debug.WriteLine(string.Format("{0} -- Fill {1} fin", DateTime.Now.Ticks, currentBuffer));
                 //Debug.WriteLine(string.Format("{0} -- {1} Thread en attente", DateTime.Now.ToString("mm:ss.fff"), currentBuffer));
                 //if (buffers[0].isPlaying || buffers[1].isPlaying)
-                    buffers[currentBuffer].Wait();
+                buffers[currentBuffer].Wait();
                 //Debug.WriteLine(string.Format("{0} -- Play {1} début", DateTime.Now.Ticks, currentBuffer));
                 //Debug.WriteLine(string.Format("{0}'{2} -- {1} Thread lancé", DateTime.Now.Second, currentBuffer, DateTime.Now.Millisecond));
                 buffers[currentBuffer].Play(soundFrequency);
                 //Debug.WriteLine(string.Format("{0} -- Play {1} fin", DateTime.Now.Ticks, currentBuffer));
-                currentBuffer = currentBuffer == 1 ? 0 : 1;
+                currentBuffer = currentBuffer == buffers.Length-1 ? 0 : currentBuffer+1;
             }
         }
 
