@@ -24,7 +24,7 @@ namespace Expaceo.SoundLibrary.Base
 
             private int Id;
 
-            private short[] Data;
+            public short[] Data { get; private set; }
 
             public bool isPlaying { get; private set; }
 
@@ -280,6 +280,11 @@ namespace Expaceo.SoundLibrary.Base
                     buffers[bufferId].FillSine(soundFrequency, soundVolume);
                     break;
             }
+        }
+
+        public short[] GetBuffer0()
+        {
+            return buffers[0].Data;
         }
 
         private void PlayThread()

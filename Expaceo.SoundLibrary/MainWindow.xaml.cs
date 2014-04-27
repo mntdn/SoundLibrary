@@ -66,11 +66,40 @@ namespace Expaceo.SoundLibrary
                 keyRectangle.MouseLeave += PianoKeyMouseLeave;
             }
 
+            private void DrawWave()
+            {
+                // espacement en pixels entre 2 échantillons
+                double PixelResolution = 3;
+                int NbSamples = (int)Math.Floor(170 / PixelResolution);
+                short[] buffer = s.GetBuffer0();
+                short[] WaveValues = new short[NbSamples-1];
+                for (int i = 0; i < NbSamples-1; i++)
+                {
+                    WaveValues[i] = buffer[i];
+                }
+                double YRatio = 50 / WaveValues.Max();
+                int XPosition = 0;
+                foreach (short waveValue in WaveValues)
+                {
+                    keyRectangle = new Rectangle();
+                    keyRectangle.Stroke = new SolidColorBrush(Colors.Black);
+                    keyRectangle.StrokeThickness = 1;
+                    keyRectangle.Fill = new SolidColorBrush(Colors.Black);
+                    keyRectangle.Width = 2;
+                    keyRectangle.Height = 2;
+                    Canvas.SetLeft(keyRectangle, XPosition);
+                    Canvas.SetTop(keyRectangle, 50-(waveValue*YRatio));
+                    XPosition += 3;
+                }
+            }
+
+
             private void PianoKeyPress(object sender, MouseButtonEventArgs e)
             {
                 IsKeyPressed = true;
                 keyRectangle.Fill = new SolidColorBrush(WhiteKey?Colors.Blue:Colors.White);
                 s.PlayBeep(Frequency, s.soundVolume);
+                DrawWave();
             }
 
             private void PianoKeyRelease(object sender, MouseButtonEventArgs e)
