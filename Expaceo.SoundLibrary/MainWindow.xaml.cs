@@ -23,6 +23,7 @@ namespace Expaceo.SoundLibrary
     public partial class MainWindow : Window
     {
         public static Sound s;
+        public static Canvas GraphCanvas;
 
         public class PianoKey
         {
@@ -69,27 +70,28 @@ namespace Expaceo.SoundLibrary
             private void DrawWave()
             {
                 // espacement en pixels entre 2 échantillons
-                double PixelResolution = 3;
-                int NbSamples = (int)Math.Floor(170 / PixelResolution);
+                int PixelResolution = 1;
+                int NbSamples = (int)Math.Floor(170 / (double)PixelResolution);
                 short[] buffer = s.GetBuffer0();
                 short[] WaveValues = new short[NbSamples-1];
                 for (int i = 0; i < NbSamples-1; i++)
                 {
                     WaveValues[i] = buffer[i];
                 }
-                double YRatio = 50 / WaveValues.Max();
+                double YRatio = 50 / (double)WaveValues.Max();
                 int XPosition = 0;
                 foreach (short waveValue in WaveValues)
                 {
-                    keyRectangle = new Rectangle();
-                    keyRectangle.Stroke = new SolidColorBrush(Colors.Black);
-                    keyRectangle.StrokeThickness = 1;
-                    keyRectangle.Fill = new SolidColorBrush(Colors.Black);
-                    keyRectangle.Width = 2;
-                    keyRectangle.Height = 2;
-                    Canvas.SetLeft(keyRectangle, XPosition);
-                    Canvas.SetTop(keyRectangle, 50-(waveValue*YRatio));
-                    XPosition += 3;
+                    Rectangle pixel = new Rectangle();
+                    pixel.Stroke = new SolidColorBrush(Colors.OliveDrab);
+                    pixel.StrokeThickness = 1;
+                    pixel.Fill = new SolidColorBrush(Colors.OliveDrab);
+                    pixel.Width = 2;
+                    pixel.Height = 2;
+                    Canvas.SetLeft(pixel, XPosition);
+                    Canvas.SetTop(pixel, 50 - (waveValue * YRatio));
+                    GraphCanvas.Children.Add(pixel);
+                    XPosition += PixelResolution;
                 }
             }
 
@@ -99,6 +101,7 @@ namespace Expaceo.SoundLibrary
                 IsKeyPressed = true;
                 keyRectangle.Fill = new SolidColorBrush(WhiteKey?Colors.Blue:Colors.White);
                 s.PlayBeep(Frequency, s.soundVolume);
+                GraphCanvas.Children.Clear();
                 DrawWave();
             }
 
@@ -164,6 +167,14 @@ namespace Expaceo.SoundLibrary
                 left += keyFreq.Value?20:0;
             }
             this.KeyDown += new KeyEventHandler(OnButtonKeyDown);
+
+            GraphCanvas = new Canvas();
+            GraphCanvas.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+            GraphCanvas.Height = 100;
+            GraphCanvas.Margin = new Thickness(337.0, 73.0, 0.0, 0.0);
+            GraphCanvas.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+            GraphCanvas.Width = 170;
+            MainGrid.Children.Add(GraphCanvas);
         }
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
